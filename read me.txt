@@ -1,0 +1,105 @@
+📄 README.md (복사해서 backend 폴더에 저장하세요)
+# 🛫 AI 기반 공항 디지털 트윈 백엔드 & 대시보드
+
+이 프로젝트는 **AI 기반 공항 디지털 트윈 시스템**의 백엔드 및 대시보드 애플리케이션입니다.  
+백엔드는 **FastAPI**, 대시보드는 **Streamlit** 기반으로 작성되어 있습니다.
+
+---
+
+## 📁 프로젝트 구조
+
+
+
+backend/
+├─ .venv/ # (가상환경 폴더 - 공유하지 않음)
+├─ .env # (환경 변수 파일 - Git에 올리지 않음)
+├─ requirements.txt # 필요한 패키지 목록
+├─ app.py / main.py # FastAPI 서버 진입점
+├─ python_dashboard_starter/ # Streamlit 대시보드
+│ ├─ app.py
+│ ├─ ...
+└─ README.md # 이 설명 파일
+
+
+---
+
+## ⚙️ 1️. 환경 설정
+
+### ✅ Python 버전
+- Python **3.10 ~ 3.11** 권장  
+  (3.8 이하에서는 일부 패키지가 설치되지 않을 수 있습니다.)
+
+### ✅ 가상환경 생성 및 활성화 (Windows 기준)
+```powershell
+# 프로젝트 폴더로 이동
+cd C:\Users\315\Desktop\backend
+
+# 가상환경 생성
+python -m venv .venv
+
+# PowerShell에서 실행 권한 허용 + 활성화
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+
+
+(터미널 앞에 (.venv) 표시가 뜨면 정상 활성화된 것입니다.)
+
+📦 2️. 패키지 설치
+pip install --upgrade pip
+pip install -r requirements.txt
+
+
+⚠️ requirements.txt에 Streamlit, FastAPI, Plotly, SQLAlchemy, dotenv 등
+프로젝트에 필요한 모든 라이브러리가 포함되어 있습니다.
+
+🚀 3️ 실행 방법
+▶️ 대시보드 (Streamlit)
+cd python_dashboard_starter
+python -m streamlit run app.py
+
+
+이후 브라우저에서 자동으로 열리거나
+http://localhost:8501 로 접속하면 대시보드를 볼 수 있습니다.
+
+▶️ 백엔드 서버 (FastAPI)
+# backend 폴더 기준
+uvicorn app:app --reload
+
+
+실행 후 http://127.0.0.1:8000/docs 에서 Swagger UI(테스트 페이지) 확인 가능.
+
+🔐 4️. 환경 변수 (.env)
+
+.env 파일에는 데이터베이스 연결 정보 등 민감한 설정이 들어갑니다.
+GitHub에는 올리지 말고, 로컬에서 직접 만들어 사용하세요 👇
+
+예시 (backend/.env):
+
+DB_USER=root
+DB_PASSWORD=1234
+DB_HOST=localhost
+DB_NAME=airport_db
+
+👥  다른 개발자가 프로젝트를 실행하려면
+git clone https://github.com/2025-Capstone-Design/backend.git
+cd backend
+python -m venv .venv
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+cd python_dashboard_starter
+python -m streamlit run app.py
+
+🧰 자주 발생하는 문제 해결
+문제	원인	해결 방법
+streamlit : 명령어를 인식할 수 없습니다	venv 미활성화	.\.venv\Scripts\Activate.ps1
+ModuleNotFoundError: No module named 'plotly'	패키지 미설치	pip install plotly
+.env 관련 DB 연결 오류	환경변수 누락	.env 파일 생성 후 DB 정보 입력
+uvicorn 실행 시 ImportError	FastAPI 구조 다름	uvicorn main:app --reload 로 변경
+🧩 기술 스택
+구분	사용 기술
+Backend	FastAPI, SQLAlchemy, PyMySQL, dotenv
+Dashboard	Streamlit, Plotly, Pandas, Numpy
+Database	MySQL (또는 MariaDB)
+Infra	Python venv, Uvicorn
+OS	Windows 10/11 기준
