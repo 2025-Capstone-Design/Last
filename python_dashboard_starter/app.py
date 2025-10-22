@@ -15,8 +15,7 @@ from sqlalchemy import create_engine
 # ✅ Streamlit 설정은 가장 먼저
 st.set_page_config(page_title="AI 기반 공항 디지털 트윈 대시보드", page_icon="🛫", layout="wide")
 
-# ✅ 자동 새로고침
-st_autorefresh(interval=10_000, key="auto_refresh")
+
 
 # ✅ .env 로드 및 DB 연결
 ENV_PATH = Path(__file__).parent / ".env"
@@ -73,102 +72,79 @@ with c4:
 
 st.markdown("---")
 
-# ---------- 혼잡도 섹션 (임시 API) ----------
-API_NOW  = "http://127.0.0.1:8000/metrics/current_congestion"
-API_HIST = "http://127.0.0.1:8000/metrics/congestion_history"
-API_ZONE = "http://127.0.0.1:8000/metrics/zone_congestion"
+# ---------- 혼잡도 섹션 (WebSocket 실시간 버전) ----------
+st.subheader("📡 실시간 혼잡도 모니터링")
 
-@st.cache_data(ttl=5)
-def fetch_now():
-    try:
-        j = requests.get(API_NOW, timeout=3).json()
-        return float(j["congestion_pct"]), j.get("updated_at")
-    except Exception:
-        return 68.0, datetime.now().isoformat()
+# ✅ FastAPI WebSocket 서버 주소
+ws_url = "ws://127.0.0.1:8000/ws/stream"
 
-@st.cache_data(ttl=5)
-def fetch_history():
-    try:
-        df = pd.DataFrame(requests.get(API_HIST, timeout=3).json())
-        df["ts"] = pd.to_datetime(df["ts"])
-        return df.sort_values("ts")
-    except Exception:
-        now = datetime.now()
-        idx = pd.date_range(now - timedelta(minutes=59), periods=60, freq="min")
-        base = 60
-        return pd.DataFrame({"ts": idx, "pct": [base + (i%9 - 4)*2 for i in range(60)]})
 
-@st.cache_data(ttl=5)
-def fetch_zone():
-    try:
-        return pd.DataFrame(requests.get(API_ZONE, timeout=3).json())
-    except Exception:
-        return pd.DataFrame({
-            "zone": ["T1-CheckIn", "T1-Security", "T1-Gate A", "T2-CheckIn", "T2-Security", "T2-Gate B"],
-            "pct": [72, 55, 63, 48, 59, 77]
-        })
+# ✅ Streamlit 컴포넌트로 JavaScript 삽입
+st.components.v1.html(f"""
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <div id="graph" style="height:400px;"></div>
+    <script>
+    const ws = new WebSocket("{ws_url}");
+    let xData = [];
+    let yData = [];
+    const MAX_POINTS = 60; // 최근 60초 유지
 
-st.subheader("실시간 혼잡도")
-colL, colM, colR = st.columns([1.1, 1.2, 1.3])
+    ws.onopen = () => console.log("✅ WebSocket 연결 성공");
+    ws.onerror = (err) => console.error("❌ WebSocket 오류:", err);
 
-# ① 현재 혼잡도 — 도넛
-curr_pct, updated_at = fetch_now()
-with colL:
-    st.markdown("#### 현재")
-    fig_donut = go.Figure(data=[go.Pie(
-        values=[curr_pct, 100-curr_pct],
-        hole=0.7, labels=["현재", "잔여"],
-        marker_colors=[PALETTE[0], "#E5E7EB"],
-        textinfo="none", sort=False
-    )])
-    fig_donut.update_layout(
-        showlegend=False, height=260, margin=dict(l=10,r=10,t=10,b=10),
-        annotations=[dict(text=fmt_pct(curr_pct), x=0.5, y=0.5,
-                          font=dict(size=28, color="#1F2937"), showarrow=False)]
-    )
-    st.plotly_chart(fig_donut, use_container_width=True)
-    st.metric("지금", fmt_pct(curr_pct))
-    if updated_at:
-        st.caption(f"업데이트: {updated_at}")
+    ws.onmessage = function(event) {{
+        const msg = JSON.parse(event.data);
+        const now = new Date().toLocaleTimeString();
+        const congestion = msg.congestion;
 
-# ② 최근 60분 추이
-with colM:
-    st.markdown("#### 최근 60분")
-    hist = fetch_history()
-    fig_area = go.Figure()
-    fig_area.add_trace(go.Scatter(
-        x=hist["ts"], y=hist["pct"], mode="lines",
-        line=dict(width=2, color=PALETTE[0]),
-        hovertemplate="%{x|%H:%M} · %{y:.0f}%<extra></extra>", name="congestion"
-    ))
-    fig_area.add_trace(go.Scatter(
-        x=hist["ts"], y=hist["pct"], mode="lines", line=dict(width=0), showlegend=False,
-        fill="tozeroy", fillcolor="rgba(59,130,246,0.18)"
-    ))
-    fig_area.update_layout(
-        height=260, margin=dict(l=10,r=10,t=10,b=10),
-        xaxis=dict(showgrid=False), yaxis=dict(range=[0,100], ticksuffix="%")
-    )
-    st.plotly_chart(fig_area, use_container_width=True)
+        // 데이터 누적
+        xData.push(now);
+        yData.push(congestion);
+        if (xData.length > MAX_POINTS) {{
+            xData.shift();
+            yData.shift();
+        }}
 
-# ③ 구역별 혼잡도
-with colR:
-    st.markdown("#### 구역별")
-    zone = fetch_zone().sort_values("pct", ascending=True)
-    fig_bar = px.bar(zone, x="pct", y="zone", orientation="h",
-                     text=zone["pct"].map(lambda v: f"{v:.0f}%"))
-    fig_bar.update_traces(marker_color=PALETTE[2], textposition="outside")
-    fig_bar.update_layout(
-        height=260, margin=dict(l=10,r=20,t=10,b=10),
-        xaxis=dict(range=[0,100], ticksuffix="%"), yaxis_title=""
-    )
-    st.plotly_chart(fig_bar, use_container_width=True)
+        // ⚠️ 혼잡도에 따라 색상 변경 (80% 이상 = 빨강)
+        let lineColor = congestion >= 80 ? "#EF4444" : "#3B82F6";
 
-# 수동 새로고침
-if st.button("🔄 새로고침"):
-    st.experimental_rerun()
+        const trace = {{
+            x: xData,
+            y: yData,
+            mode: "lines+markers",
+            line: {{ color: lineColor, width: 3 }},
+            marker: {{ size: 6, color: lineColor }},
+            name: "혼잡도 (%)"
+        }};
 
-st.divider()
+        const annotations = congestion >= 80 ? [{{
+            x: now,
+            y: congestion,
+            text: "🚨 혼잡!",
+            showarrow: true,
+            arrowhead: 7,
+            ax: 0,
+            ay: -40,
+            font: {{ color: "#EF4444", size: 14 }}
+        }}] : [];
+
+        const layout = {{
+            title: "실시간 혼잡도 변화 (경보 기준 80%)",
+            xaxis: {{ title: "시간" }},
+            yaxis: {{ title: "혼잡도 (%)", range: [0, 100] }},
+            margin: {{ l: 50, r: 20, t: 50, b: 50 }},
+            plot_bgcolor: "#f9fafb",
+            paper_bgcolor: "#f9fafb",
+            annotations: annotations
+        }};
+
+        Plotly.newPlot("graph", [trace], layout, {{responsive: true}});
+    }};
+    </script>
+""", height=430)
+
+
+
 
 # ---------- (옵션) 샘플 데이터 탐색 ----------
 with st.expander("🔬 샘플 데이터 탐색(데모)"):

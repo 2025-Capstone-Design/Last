@@ -1,5 +1,24 @@
+# ---------------- 기본 백엔드 ----------------
 fastapi
 uvicorn[standard]
+websockets
+asyncio
+python-dotenv
 SQLAlchemy>=2.0
 pymysql
-python-dotenv
+
+# ---------------- 대시보드 ----------------
+streamlit
+plotly
+streamlit-autorefresh
+pandas
+numpy
+
+# ---------------- YOLO & 영상처리 ----------------
+ultralytics
+opencv-python
+yt-dlp
+
+# ---------------- 시스템 / 유틸 ----------------
+pathlib
+requests
