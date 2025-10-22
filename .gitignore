@@ -1,9 +1,10 @@
-__pycache__/
-*.pyc
-.DS_Store
+# Python / Streamlit / YOLO ignore rules
 .venv/
 __pycache__/
 *.pt
 *.pyd
 *.dll
 *.exe
+.DS_Store
+*.log
+.env
