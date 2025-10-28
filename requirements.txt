@@ -1,24 +1,43 @@
-# ---------------- 기본 백엔드 ----------------
-fastapi
-uvicorn[standard]
-websockets
-asyncio
-python-dotenv
-SQLAlchemy>=2.0
-pymysql
+# ---------- Core Python ----------
+numpy==1.26.4
+pandas==2.2.3
+requests==2.32.3
+python-dotenv==1.0.1
+pathlib==1.0.1
 
-# ---------------- 대시보드 ----------------
-streamlit
-plotly
-streamlit-autorefresh
-pandas
-numpy
+# ---------- FastAPI & Backend ----------
+fastapi==0.115.2
+uvicorn[standard]==0.30.6
+starlette==0.38.5
+SQLAlchemy==2.0.43
+PyMySQL==1.1.1
 
-# ---------------- YOLO & 영상처리 ----------------
-ultralytics
-opencv-python
-yt-dlp
+# ---------- WebSocket & Async ----------
+websockets==12.0
+asyncio==3.4.3
 
-# ---------------- 시스템 / 유틸 ----------------
-pathlib
-requests
+# ---------- Streamlit (Frontend Dashboard) ----------
+streamlit==1.39.0
+streamlit-autorefresh==1.0.1
+plotly==5.24.1
+
+# ---------- YOLOv8 & Computer Vision ----------
+ultralytics==8.3.33
+opencv-python==4.10.0.84
+yt-dlp>=2024.10.0
+torch>=2.0.0
+torchvision>=0.15.0
+
+# ---------- Math / Science Utils ----------
+scipy==1.15.3
+
+# ---------- Development Tools ----------
+tqdm==4.66.5
+typing_extensions>=4.12.0
+colorama==0.4.6
+
+# ---------- Optional (for JSON, YAML configs) ----------
+PyYAML==6.0.2
+
+# ---------- Optional UI/Debugging ----------
+rich==13.9.2

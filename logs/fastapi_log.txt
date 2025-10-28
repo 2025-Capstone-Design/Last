@@ -1,0 +1,18 @@
+INFO:     Will watch for changes in these directories: ['C:\\Users\\315\\backend1']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [7860] using WatchFiles
+INFO:     Started server process [20396]
+INFO:     Waiting for application startup.
+ERROR:    Traceback (most recent call last):
+  File "C:\Users\315\backend1\.venv\lib\site-packages\starlette\routing.py", line 693, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+  File "C:\Users\315\backend1\.venv\lib\site-packages\starlette\routing.py", line 569, in __aenter__
+    await self._router.startup()
+  File "C:\Users\315\backend1\.venv\lib\site-packages\starlette\routing.py", line 670, in startup
+    await handler()
+  File "C:\Users\315\backend1\realtime_server.py", line 69, in startup_event
+    print("\U0001f680 WebSocket Relay Server Ready (YOLO ↔ Streamlit 병렬 대기)")
+UnicodeEncodeError: 'cp949' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+ERROR:    Application startup failed. Exiting.
+INFO:     Stopping reloader process [7860]

@@ -1,21 +1,13 @@
 # ---------- imports ----------
 import streamlit as st
-import requests
-import pandas as pd
-import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
-from streamlit_autorefresh import st_autorefresh
+from datetime import datetime
 from dotenv import load_dotenv
 from pathlib import Path
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 # ✅ Streamlit 설정은 가장 먼저
 st.set_page_config(page_title="AI 기반 공항 디지털 트윈 대시보드", page_icon="🛫", layout="wide")
-
-
 
 # ✅ .env 로드 및 DB 연결
 ENV_PATH = Path(__file__).parent / ".env"
@@ -27,28 +19,15 @@ if not db_url:
     st.error("❌ DATABASE_URL이 비어있습니다. .env 위치/내용을 확인하세요.")
     st.stop()
 
-# ✅ 여기서 text를 import (try 밖에서!)
-from sqlalchemy import text
-
+# ✅ DB 연결 및 테이블 목록 사이드바에 표시
 try:
-    # DB 연결
     engine = create_engine(db_url, pool_pre_ping=True, future=True)
-    
-    # DB 연결 테스트 및 테이블 목록 출력
     with engine.connect() as conn:
         result = conn.execute(text("SHOW TABLES;"))
         tables = [row[0] for row in result]
         st.sidebar.write("📂 데이터베이스 테이블:", tables)
-
 except Exception as e:
     st.sidebar.error(f"DB 연결 실패: {e}")
-except Exception as e:
-    st.sidebar.error(f"DB 연결 실패: {e}")
-
-# ---------- 공통 스타일 ----------
-PALETTE = ["#3B82F6", "#10B981", "#F59E0B", "#6366F1", "#EC4899", "#14B8A6", "#F97316", "#94A3B8"]
-px.defaults.color_discrete_sequence = PALETTE
-def fmt_pct(v): return f"{float(v):.0f}%"
 
 # ---------- 상단 헤더 ----------
 st.title("🛫 AI 기반 공항 디지털 트윈 시스템")
@@ -56,135 +35,117 @@ st.caption("실시간 모니터링 · 단기 예측 · 이상상황 경보 기�
 st.markdown(f"**📅 업데이트:** {datetime.now().strftime('%Y-%m-%d %H:%M')} 기준")
 st.markdown("---")
 
-c1, c2, c3, c4 = st.columns(4)
-with c1:
-    st.metric("운영 효율성 향상", "▲ 15%", "+15%")
-    st.write("대기시간 단축 및 수하물 지연 감소")
-with c2:
-    st.metric("혼잡도 예측 정확도", "92%", "+4%")
-    st.write("AI 기반 단기 혼잡도 예측")
-with c3:
-    st.metric("이상 상황 탐지율", "98%", "+6%")
-    st.write("센서·CCTV 융합 기반 실시간 감시")
-with c4:
-    st.metric("승객 만족도 향상", "▲ 25%", "+25%")
-    st.write("쾌적한 이용 환경 및 안전성 확보")
-
-st.markdown("---")
-
-# ---------- 혼잡도 섹션 (WebSocket 실시간 버전) ----------
+# ---------- 실시간 혼잡도 섹션 (WebSocket) ----------
 st.subheader("📡 실시간 혼잡도 모니터링")
 
-# ✅ FastAPI WebSocket 서버 주소
+# ✅ FastAPI WebSocket 서버 주소 (필요시 수정)
 ws_url = "ws://127.0.0.1:8000/ws/stream"
 
+# ✅ Streamlit 컴포넌트로 JavaScript 삽입 (Plotly는 CDN 사용)
+# ✅ HTML을 f-string 없이 만들고, WS_URL만 치환
+html = """
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
-# ✅ Streamlit 컴포넌트로 JavaScript 삽입
-st.components.v1.html(f"""
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <div id="graph" style="height:400px;"></div>
-    <script>
-    const ws = new WebSocket("{ws_url}");
-    let xData = [];
-    let yData = [];
-    const MAX_POINTS = 60; // 최근 60초 유지
+<!-- KPI -->
+<div id="kpi" style="
+    display:flex; gap:16px; align-items:baseline; margin:8px 4px 12px 4px;
+    font-family: ui-sans-serif,system-ui,AppleSDGothicNeo,Segoe UI,Roboto,Helvetica,Arial;">
+  <div id="kpi-value" style="font-size:32px; font-weight:800; color:#2563EB;">
+    현재 인원: --명
+  </div>
+  <div id="kpi-count" style="font-size:14px; color:#6B7280;">
+    (수신 0건)
+  </div>
+</div>
 
-    ws.onopen = () => console.log("✅ WebSocket 연결 성공");
-    ws.onerror = (err) => console.error("❌ WebSocket 오류:", err);
+<div id="graph" style="height:520px;"></div>
+<script>
+  const WS_URL     = "%WS_URL%";
+  const MAX_POINTS = 60;     // 최근 포인트 유지
+  const MAX_PEOPLE = 20;     // y축 상한(명) — 시연용 고정
 
-    ws.onmessage = function(event) {{
-        const msg = JSON.parse(event.data);
-        const now = new Date().toLocaleTimeString();
-        const congestion = msg.congestion;
+  let count = 0;
 
-        // 데이터 누적
-        xData.push(now);
-        yData.push(congestion);
-        if (xData.length > MAX_POINTS) {{
-            xData.shift();
-            yData.shift();
-        }}
+  const layout = {
+    title: "실시간 인원 추이",
+    xaxis: { title: "시간", type: "date", tickformat: "%-I:%M %p", showgrid: false, tickfont: { size: 12 } },
+    yaxis: {
+      title: "인원(명)",
+      range: [0, MAX_PEOPLE],
+      dtick: 5,
+      gridcolor: "#E5E7EB",
+      zerolinecolor: "#CBD5E1",
+      fixedrange: true
+    },
+    margin: { l: 60, r: 20, t: 50, b: 50 },
+    plot_bgcolor: "#ffffff",
+    paper_bgcolor: "#ffffff",
+    showlegend: false
+  };
 
-        // ⚠️ 혼잡도에 따라 색상 변경 (80% 이상 = 빨강)
-        let lineColor = congestion >= 80 ? "#EF4444" : "#3B82F6";
+  const trace = {
+    x: [],
+    y: [],             // 사람 수(명)
+    text: [],          // 호버 텍스트 "N명"
+    mode: "lines+markers",
+    line: { color: "#2563EB", width: 3 },
+    marker: { size: 6, color: "#2563EB" },
+    name: "인원",
+    cliponaxis: true,
+    hovertemplate: "%{text}<extra></extra>"
+  };
 
-        const trace = {{
-            x: xData,
-            y: yData,
-            mode: "lines+markers",
-            line: {{ color: lineColor, width: 3 }},
-            marker: {{ size: 6, color: lineColor }},
-            name: "혼잡도 (%)"
-        }};
+  Plotly.newPlot("graph", [trace], layout, { responsive: true, displayModeBar: false });
 
-        const annotations = congestion >= 80 ? [{{
-            x: now,
-            y: congestion,
-            text: "🚨 혼잡!",
-            showarrow: true,
-            arrowhead: 7,
-            ax: 0,
-            ay: -40,
-            font: {{ color: "#EF4444", size: 14 }}
-        }}] : [];
+  const ws = new WebSocket(WS_URL);
+  ws.onopen  = () => console.log("✅ WebSocket 연결");
+  ws.onerror = (e) => console.error("❌ WebSocket 오류:", e);
 
-        const layout = {{
-            title: "실시간 혼잡도 변화 (경보 기준 80%)",
-            xaxis: {{ title: "시간" }},
-            yaxis: {{ title: "혼잡도 (%)", range: [0, 100] }},
-            margin: {{ l: 50, r: 20, t: 50, b: 50 }},
-            plot_bgcolor: "#f9fafb",
-            paper_bgcolor: "#f9fafb",
-            annotations: annotations
-        }};
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
 
-        Plotly.newPlot("graph", [trace], layout, {{responsive: true}});
-    }};
-    </script>
-""", height=430)
+    // 필수 입력값: people(명), congestion(%)
+    const people = (typeof msg.people === "number") ? msg.people : 0;
+    const pct    = (typeof msg.congestion === "number") ? msg.congestion : 0;
 
+    const now = new Date();
+    count += 1;
 
+    // 그래프가 축을 절대 뚫지 않도록 표시값 클램프
+    const yDisplay = Math.max(0, Math.min(MAX_PEOPLE - 0.001, people));
 
+    // 호버 텍스트: 퍼센트 미표시(명만)
+    const txt = `${people.toLocaleString()}명`;
 
-# ---------- (옵션) 샘플 데이터 탐색 ----------
-with st.expander("🔬 샘플 데이터 탐색(데모)"):
-    @st.cache_data
-    def load_data():
-        return pd.read_csv("sample_data.csv", parse_dates=["date"])
-    df = load_data()
+    // 데이터 추가
+    Plotly.extendTraces("graph", { x: [[now]], y: [[yDisplay]], text: [[txt]] }, [0], MAX_POINTS);
 
-    required = {"date", "category", "value"}
-    if not required.issubset(df.columns):
-        st.error(f"CSV에 필요한 컬럼이 없습니다. 필요: {required} / 현재: {list(df.columns)}")
-        st.stop()
+    // 퍼센트 기준(80%)으로 색상/경보 표시 — UI엔 % 안 보임
+    // 20명 스케일 기준 퍼센트(시연 스케일)로 경보 판단
+    const dangerPct = (people / MAX_PEOPLE) * 100;
+    const danger = dangerPct >= 80;
 
-    st.sidebar.header("🔍 필터")
-    cats = sorted(df["category"].unique())
-    cat_sel = st.sidebar.multiselect("카테고리 선택", cats, default=cats)
+    const color  = danger ? "#EF4444" : "#2563EB";
 
-    dmin, dmax = df["date"].min(), df["date"].max()
-    drange = st.sidebar.date_input("📅 기간 선택", (dmin, dmax), min_value=dmin, max_value=dmax)
+    Plotly.restyle("graph", { "line.color": color, "marker.color": color }, [0]);
 
-    if isinstance(drange, (list, tuple)) and len(drange) == 2:
-        st.markdown(f"**🗓️ 선택된 기간:** {drange[0].strftime('%Y년 %m월 %d일')} ~ {drange[1].strftime('%Y년 %m월 %d일')}")
+    // 경보 주석
+    const ann = danger ? [{
+      x: now, y: yDisplay,
+      text: "🚨 혼잡!",
+      showarrow: true, arrowhead: 7, ax: 0, ay: -40,
+      font: { color: "#EF4444", size: 14 }
+    }] : [];
+    Plotly.relayout("graph", { annotations: ann });
 
-    mask = df["category"].isin(cat_sel)
-    if isinstance(drange, (list, tuple)) and len(drange) == 2:
-        start, end = pd.to_datetime(drange[0]), pd.to_datetime(drange[1])
-        mask &= df["date"].between(start, end)
-    f = df.loc[mask].sort_values("date")
+    // KPI 갱신(명만 표기)
+    const kpi = document.getElementById("kpi-value");
+    const cnt = document.getElementById("kpi-count");
+    kpi.textContent = `현재 인원: ${people.toLocaleString()}명`;
+    kpi.style.color = color;
+    cnt.textContent  = `(수신 ${count}건)`;
+  };
+</script>
 
-    a, b, c = st.columns(3)
-    a.metric("행 수", len(f))
-    b.metric("합계(value)", int(f["value"].sum()))
-    delta = int(f["value"].iloc[-1] - f["value"].iloc[0]) if len(f) > 1 else 0
-    c.metric("증감(마지막-처음)", delta)
-
-    st.markdown("#### 시계열")
-    st.plotly_chart(px.line(f, x="date", y="value", color="category", markers=False), use_container_width=True)
-
-    st.markdown("#### 분포")
-    st.plotly_chart(px.box(f, x="category", y="value", points="suspectedoutliers"), use_container_width=True)
-
-    st.markdown("#### 데이터")
-    st.dataframe(f, use_container_width=True)
+"""
+st.components.v1.html(html.replace("%WS_URL%", ws_url), height=600)
