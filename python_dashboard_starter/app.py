@@ -149,3 +149,77 @@ html = """
 
 """
 st.components.v1.html(html.replace("%WS_URL%", ws_url), height=600)
+
+
+# ---------- 예측 혼잡도 시각화 (DB에서 불러오기) ----------
+st.markdown("---")
+st.subheader("📊 실제 혼잡도 vs 예측 혼잡도 비교")
+
+import plotly.graph_objects as go
+import pandas as pd
+
+try:
+    # ✅ 실제 데이터
+    df_real = pd.read_sql("SELECT * FROM kim_forecast", con=engine)
+    df_real["FlightDate"] = pd.to_datetime(df_real["FlightDate"])
+    df_real["Hour"] = df_real["HourRange"].str.split(" ").str[0].astype(int)
+    df_real["FlightDateTime"] = df_real.apply(
+        lambda row: row["FlightDate"] + pd.Timedelta(hours=row["Hour"], minutes=30), axis=1
+    )
+    df_real = df_real.groupby("FlightDateTime")["MaxWait"].max().reset_index()
+    df_real.rename(columns={"MaxWait": "Actual_MaxWait"}, inplace=True)
+
+    # ✅ 예측 데이터
+    df_pred = pd.read_sql("SELECT * FROM predicted_wait", con=engine)
+    df_pred["FlightDateTime"] = pd.to_datetime(df_pred["FlightDateTime"])
+
+    # ✅ 그래프 생성
+    fig = go.Figure()
+
+    # 실제값 (파란색)
+    fig.add_trace(go.Scatter(
+        x=df_real["FlightDateTime"], y=df_real["Actual_MaxWait"],
+        mode="lines", name="실제 혼잡도", line=dict(color="#1D4ED8", width=2)
+    ))
+
+    # 예측값 (빨간색)
+    fig.add_trace(go.Scatter(
+        x=df_pred["FlightDateTime"], y=df_pred["Predicted_MaxWait"],
+        mode="lines", name="예측 혼잡도", line=dict(color="#E63946", width=2)
+    ))
+
+    # 구간 표시
+    future_start = df_pred["FlightDateTime"].min()
+    future_end = df_pred["FlightDateTime"].max()
+    fig.add_vrect(
+        x0=future_start, x1=future_end,
+        fillcolor="red", opacity=0.08, line_width=0,
+        annotation_text="예측 구간", annotation_position="top right"
+    )
+
+    fig.update_layout(
+        title="✈️ 실제 vs 예측 혼잡도 (LightGBM 모델)",
+        xaxis_title="날짜",
+        yaxis_title="최대 대기시간 (분)",
+        template="plotly_white",
+        hovermode="x unified",
+        height=600,
+        legend_title_text="데이터 종류",
+    )
+
+    # ✅ 좌우 스크롤 (Zoom/Slider)
+    fig.update_xaxes(
+        rangeslider_visible=True,
+        rangeselector=dict(
+            buttons=list([
+                dict(count=1, label="1개월", step="month", stepmode="backward"),
+                dict(count=6, label="6개월", step="month", stepmode="backward"),
+                dict(step="all", label="전체")
+            ])
+        )
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+except Exception as e:
+    st.error(f"❌ 데이터 불러오기 실패: {e}")
