@@ -1,0 +1,181 @@
+/* ------------------------------------------------------- */
+/* [필수] 폰트 임포트는 최상단에 위치해야 합니다 */
+/* ------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+/* ------------------------------------------------------- */
+/* [기본 레이아웃 및 Streamlit UI 강제 리셋] */
+/* ------------------------------------------------------- */
+[data-testid="stAppViewContainer"] {
+    padding: 0 !important;
+    background: radial-gradient(circle at 10% 10%, #1e293b 0%, #020617 100%) !important;
+}
+
+/* 메인 컨텐츠 영역 여백 조절 */
+.main .block-container {
+    padding-top: 1rem !important; /* 필요시 0rem으로 조정 */
+    padding-bottom: 2rem !important;
+    max-width: 1600px !important;
+}
+
+/* 🚨 Streamlit 기본 헤더 및 햄버거 메뉴 숨김 (Dashboard 모드) */
+[data-testid="stHeader"], 
+[data-testid="stToolbar"], 
+#MainMenu, 
+footer {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* 제목 마크다운이 생성하는 불필요한 상단 여백 제거 */
+.st-emotion-cache-12fm5q7, 
+.st-emotion-cache-1r6r4g7,
+[data-testid="stVerticalBlock"] > div:first-child > div:first-child { 
+    padding-top: 0px !important; 
+    margin-top: 0px !important;
+}
+
+/* ------------------------------------------------------- */
+/* [타이포그래피] */
+/* ------------------------------------------------------- */
+body, p, div, span, li {
+    font-family: 'Inter', sans-serif;
+    color: #cbd5e1;
+}
+
+h1, h2, h3 {
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.02em;
+    color: #f8fafc;
+}
+
+/* ------------------------------------------------------- */
+/* [UI 컴포넌트] Glassmorphism 카드 */
+/* ------------------------------------------------------- */
+.glass-card {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+    margin-bottom: 20px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+    border-color: rgba(56, 189, 248, 0.3);
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.1);
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    background: linear-gradient(90deg, #fff, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 20px;
+}
+
+.card-caption {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* ------------------------------------------------------- */
+/* [네비게이션 바] */
+/* ------------------------------------------------------- */
+.top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 24px;
+}
+
+.brand-logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: #38bdf8;
+    text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-badge {
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #34d399;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #34d399;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
+    70% { opacity: 1; box-shadow: 0 0 0 6px rgba(52, 211, 153, 0); }
+    100% { opacity: 1; box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+}
+
+/* ------------------------------------------------------- */
+/* [KPI 지표] */
+/* ------------------------------------------------------- */
+.kpi-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.kpi-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.kpi-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+}
+
+.kpi-sub {
+    font-size: 0.8rem;
+    margin-top: 4px;
+    color: #94a3b8;
+}
+
+/* 사이드바 오버라이드 */
+[data-testid="stSidebar"] {
+    background-color: #020617;
+    border-right: 1px solid #1e293b;
+}
