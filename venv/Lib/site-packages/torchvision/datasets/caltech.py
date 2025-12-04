@@ -1,12 +1,11 @@
 import os
 import os.path
-import shutil
 from pathlib import Path
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 from PIL import Image
 
-from .utils import download_and_extract_archive, extract_archive, verify_str_arg
+from .utils import download_and_extract_archive, verify_str_arg
 from .vision import VisionDataset
 
 
@@ -41,7 +40,7 @@ class Caltech101(VisionDataset):
     def __init__(
         self,
         root: Union[str, Path],
-        target_type: Union[list[str], str] = "category",
+        target_type: Union[List[str], str] = "category",
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
         download: bool = False,
@@ -72,14 +71,14 @@ class Caltech101(VisionDataset):
         }
         self.annotation_categories = list(map(lambda x: name_map[x] if x in name_map else x, self.categories))
 
-        self.index: list[int] = []
+        self.index: List[int] = []
         self.y = []
-        for i, c in enumerate(self.categories):
+        for (i, c) in enumerate(self.categories):
             n = len(os.listdir(os.path.join(self.root, "101_ObjectCategories", c)))
             self.index.extend(range(1, n + 1))
             self.y.extend(n * [i])
 
-    def __getitem__(self, index: int) -> tuple[Any, Any]:
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
         """
         Args:
             index (int): Index
@@ -134,17 +133,17 @@ class Caltech101(VisionDataset):
             return
 
         download_and_extract_archive(
-            "https://data.caltech.edu/records/mzrjq-6wc02/files/caltech-101.zip",
-            download_root=self.root,
-            filename="caltech-101.zip",
-            md5="3138e1922a9193bfa496528edbbc45d0",
+            "https://drive.google.com/file/d/137RyRjvTBkBiIfeYBNZBtViDHQ6_Ewsp",
+            self.root,
+            filename="101_ObjectCategories.tar.gz",
+            md5="b224c7392d521a49829488ab0f1120d9",
         )
-        gzip_folder = os.path.join(self.root, "caltech-101")
-        for gzip_file in os.listdir(gzip_folder):
-            if gzip_file.endswith(".gz"):
-                extract_archive(os.path.join(gzip_folder, gzip_file), self.root)
-        shutil.rmtree(gzip_folder)
-        os.remove(os.path.join(self.root, "caltech-101.zip"))
+        download_and_extract_archive(
+            "https://drive.google.com/file/d/175kQy3UsZ0wUEHZjqkUDdNVssr7bgh_m",
+            self.root,
+            filename="Annotations.tar",
+            md5="6f83eeb1f24d99cab4eb377263132c91",
+        )
 
     def extra_repr(self) -> str:
         return "Target type: {target_type}".format(**self.__dict__)
@@ -182,9 +181,9 @@ class Caltech256(VisionDataset):
             raise RuntimeError("Dataset not found or corrupted. You can use download=True to download it")
 
         self.categories = sorted(os.listdir(os.path.join(self.root, "256_ObjectCategories")))
-        self.index: list[int] = []
+        self.index: List[int] = []
         self.y = []
-        for i, c in enumerate(self.categories):
+        for (i, c) in enumerate(self.categories):
             n = len(
                 [
                     item
@@ -195,7 +194,7 @@ class Caltech256(VisionDataset):
             self.index.extend(range(1, n + 1))
             self.y.extend(n * [i])
 
-    def __getitem__(self, index: int) -> tuple[Any, Any]:
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
         """
         Args:
             index (int): Index
@@ -234,7 +233,7 @@ class Caltech256(VisionDataset):
             return
 
         download_and_extract_archive(
-            "https://data.caltech.edu/records/nyy15-4j048/files/256_ObjectCategories.tar",
+            "https://drive.google.com/file/d/1r6o0pSROcV1_VwT4oSjA2FBUSCWGuxLK",
             self.root,
             filename="256_ObjectCategories.tar",
             md5="67b4f42ca05d46448c6bb8ecd2220f6d",

@@ -1,8 +1,7 @@
 import os
 import os.path
 import pathlib
-from collections.abc import Sequence
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
 from PIL import Image
 
@@ -96,7 +95,7 @@ class OxfordIIITPet(VisionDataset):
     def __len__(self) -> int:
         return len(self._images)
 
-    def __getitem__(self, idx: int) -> tuple[Any, Any]:
+    def __getitem__(self, idx: int) -> Tuple[Any, Any]:
         image = Image.open(self._images[idx]).convert("RGB")
 
         target: Any = []

@@ -1,8 +1,7 @@
 import io
 import warnings
-from collections.abc import Iterator
 
-from typing import Any
+from typing import Any, Dict, Iterator
 
 import torch
 
@@ -176,9 +175,9 @@ class VideoReader:
             # TODO: add extradata exception
 
         else:
-            raise RuntimeError(f"Unknown video backend: {self.backend}")
+            raise RuntimeError("Unknown video backend: {}".format(self.backend))
 
-    def __next__(self) -> dict[str, Any]:
+    def __next__(self) -> Dict[str, Any]:
         """Decodes and returns the next frame of the current stream.
         Frames are encoded as a dict with mandatory
         data and pts fields, where data is a tensor, and pts is a
@@ -215,7 +214,7 @@ class VideoReader:
 
         return {"data": frame, "pts": pts}
 
-    def __iter__(self) -> Iterator[dict[str, Any]]:
+    def __iter__(self) -> Iterator[Dict[str, Any]]:
         return self
 
     def seek(self, time_s: float, keyframes_only: bool = False) -> "VideoReader":
@@ -245,7 +244,7 @@ class VideoReader:
             self._c = self.container.decode(**self.pyav_stream)
         return self
 
-    def get_metadata(self) -> dict[str, Any]:
+    def get_metadata(self) -> Dict[str, Any]:
         """Returns video metadata
 
         Returns:

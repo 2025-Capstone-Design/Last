@@ -9,7 +9,7 @@ REM ===================================================
 REM ==========================================
 REM [경로 설정] 최종 확인 완료: C:\Users\315\Desktop\backend1
 REM ==========================================
-set "BASE=C:\Users\315\Desktop\backend1"
+set "BASE=C:\Users\315\Desktop\backend1_new"
 set "DASH=%BASE%\python_dashboard_starter"
 
 REM 가상환경 이름 (사용자 확인: venv)
@@ -28,15 +28,23 @@ timeout /t 4 >nul
 echo 2. YOLO 송신기 시작 중...
 start "YOLO Sender" cmd /k "cd /d "%BASE%" && call "%VENV%\activate" && python m.py"
 
+
 REM 데이터 전송 대기
 timeout /t 2 >nul
 
-echo 3. Streamlit 대시보드 시작 중...
-start "Streamlit Dashboard" cmd /k "cd /d "%DASH%" && call "%VENV%\activate" && streamlit run app.py --server.port 8501" 
-REM ⬆️ 여기에 닫는 큰따옴표(")가 추가되었습니다!
+echo 3. YOLO 송신기 2 (m2.py) 시작 중...
+start "YOLO Sender 2" cmd /k "cd /d "%BASE%" && call "%VENV%\activate" && python m2.py"
+
+REM 데이터 전송 대기
+timeout /t 2 >nul
+
+echo 4. Streamlit 대시보드 시작 중...
+REM ✅ 따옴표(") 닫음 확인 완료
+start "Streamlit Dashboard" cmd /k "cd /d "%DASH%" && call "%VENV%\activate" && streamlit run app.py --server.port 8501"
 
 echo.
-echo 🚀 모든 서비스가 실행되었습니다! 창 3개가 떴는지 확인하세요.
+echo 🚀 모든 서비스(FastAPI, m.py, m2.py, Streamlit)가 실행되었습니다!
+echo 창 4개가 떴는지 확인하세요.
 pause
 ```
 eof

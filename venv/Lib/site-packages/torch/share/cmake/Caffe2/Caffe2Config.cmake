@@ -74,11 +74,11 @@ if (OFF)
   include("${CMAKE_CURRENT_LIST_DIR}/public/LoadHIP.cmake")
 endif()
 
-if(0)
+if(ON)
   # The file public/cuda.cmake exclusively uses CAFFE2_USE_*.
   # If Caffe2 was compiled with the libraries below, they must
   # be found again when including the Caffe2 target.
-  set(CAFFE2_USE_CUDA 0)
+  set(CAFFE2_USE_CUDA ON)
 
   # Add current directory to module path so we pick up FindCUDAToolkit.cmake
   set(old_CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}")
@@ -86,7 +86,7 @@ if(0)
   include("${CMAKE_CURRENT_LIST_DIR}/public/cuda.cmake")
   set(CMAKE_MODULE_PATH "${old_CMAKE_MODULE_PATH}")
 
-  if( AND NOT CAFFE2_USE_CUDA)
+  if(ON AND NOT CAFFE2_USE_CUDA)
     message(FATAL_ERROR
       "Your installed Caffe2 version uses CUDA but I cannot find the CUDA "
       "libraries. Please set the proper CUDA prefixes and / or install "
@@ -100,13 +100,6 @@ if(OFF)
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
   include("${CMAKE_CURRENT_LIST_DIR}/public/xpu.cmake")
   set(CMAKE_MODULE_PATH "${old_CMAKE_MODULE_PATH}")
-
-  if(OFF AND NOT PYTORCH_FOUND_XPU)
-    message(FATAL_ERROR
-      "Your installed Caffe2 version uses XPU but I cannot find the XPU runtime"
-      "libraries. Please set the proper oneAPI paths and / or install "
-      "oneAPI.")
-  endif()
 endif()
 
 if(ON)
